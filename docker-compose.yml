@@ -5,7 +5,10 @@ services:
       dockerfile: Dockerfile
       args:
         APP_TARGET: api
-    env_file: .env
+    env_file:
+      - .env.example
+      - path: .env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,7 +25,10 @@ services:
       dockerfile: Dockerfile
       args:
         APP_TARGET: worker
-    env_file: .env
+    env_file:
+      - .env.example
+      - path: .env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy

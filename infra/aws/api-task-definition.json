@@ -1,0 +1,50 @@
+{
+  "family": "url-shortener-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::<account-id>:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::<account-id>:role/url-shortener-api-task-role",
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "<account-id>.dkr.ecr.<region>.amazonaws.com/url-shortener-api:<tag>",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "APP_ENV", "value": "production" },
+        { "name": "HTTP_ADDR", "value": ":8080" },
+        { "name": "PUBLIC_BASE_URL", "value": "https://go.example.com" },
+        { "name": "WEB_ORIGIN", "value": "https://links.example.com" },
+        { "name": "KAFKA_CLICK_TOPIC", "value": "click-events" },
+        { "name": "RATE_LIMIT_REQUESTS", "value": "600" },
+        { "name": "RATE_LIMIT_WINDOW_SECONDS", "value": "60" }
+      ],
+      "secrets": [
+        { "name": "POSTGRES_DSN", "valueFrom": "arn:aws:ssm:<region>:<account-id>:parameter/url-shortener/postgres-dsn" },
+        { "name": "REDIS_ADDR", "valueFrom": "arn:aws:ssm:<region>:<account-id>:parameter/url-shortener/redis-addr" },
+        { "name": "KAFKA_BROKERS", "valueFrom": "arn:aws:ssm:<region>:<account-id>:parameter/url-shortener/kafka-brokers" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/url-shortener-api",
+          "awslogs-region": "<region>",
+          "awslogs-stream-prefix": "api"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3
+      }
+    }
+  ]
+}

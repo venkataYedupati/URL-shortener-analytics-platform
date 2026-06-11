@@ -34,6 +34,12 @@ npm --prefix web install
 npm --prefix web run build
 ```
 
+Run a local smoke test after Compose is healthy:
+
+```bash
+bash scripts/smoke.sh
+```
+
 ## API Snapshot
 
 - `POST /v1/links` creates a short URL.
@@ -42,6 +48,38 @@ npm --prefix web run build
 - `GET /v1/links/{code}/analytics` returns rollups and recent events.
 - `GET /v1/links/{code}/qr` returns a PNG QR code for the short URL.
 - `GET /healthz` returns dependency health.
+
+Create a link:
+
+```bash
+curl -X POST http://localhost:8080/v1/links \
+  -H "Content-Type: application/json" \
+  -d '{"target_url":"https://example.com","title":"Example","custom_code":"demo"}'
+```
+
+Trigger a redirect:
+
+```bash
+curl -I http://localhost:8080/demo
+```
+
+Read analytics:
+
+```bash
+curl http://localhost:8080/v1/links/demo/analytics?hours=24
+```
+
+## Deployment
+
+The `infra/aws` folder includes ECS task definition and autoscaling policy templates for API and worker services. In production, store secrets in SSM Parameter Store or Secrets Manager, run Postgres on RDS, Redis on ElastiCache, and Kafka on MSK or a Kafka-compatible managed service.
+
+Build images from the repository root:
+
+```bash
+docker build --build-arg APP_TARGET=api -t url-shortener-api .
+docker build --build-arg APP_TARGET=worker -t url-shortener-worker .
+docker build -t url-shortener-web ./web
+```
 
 ## Resume-Scale Signals
 

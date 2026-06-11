@@ -1,0 +1,33 @@
+{
+  "family": "url-shortener-worker",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::<account-id>:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::<account-id>:role/url-shortener-worker-task-role",
+  "containerDefinitions": [
+    {
+      "name": "worker",
+      "image": "<account-id>.dkr.ecr.<region>.amazonaws.com/url-shortener-worker:<tag>",
+      "essential": true,
+      "environment": [
+        { "name": "APP_ENV", "value": "production" },
+        { "name": "KAFKA_CLICK_TOPIC", "value": "click-events" },
+        { "name": "KAFKA_CONSUMER_GROUP", "value": "analytics-worker" }
+      ],
+      "secrets": [
+        { "name": "POSTGRES_DSN", "valueFrom": "arn:aws:ssm:<region>:<account-id>:parameter/url-shortener/postgres-dsn" },
+        { "name": "KAFKA_BROKERS", "valueFrom": "arn:aws:ssm:<region>:<account-id>:parameter/url-shortener/kafka-brokers" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/url-shortener-worker",
+          "awslogs-region": "<region>",
+          "awslogs-stream-prefix": "worker"
+        }
+      }
+    }
+  ]
+}

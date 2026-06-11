@@ -1,0 +1,21 @@
+{
+  "serviceNamespace": "ecs",
+  "resourceId": "service/<cluster-name>/url-shortener-worker",
+  "scalableDimension": "ecs:service:DesiredCount",
+  "minCapacity": 1,
+  "maxCapacity": 20,
+  "targetTrackingScalingPolicyConfiguration": {
+    "targetValue": 5000.0,
+    "customizedMetricSpecification": {
+      "metricName": "KafkaConsumerLag",
+      "namespace": "URLShortener",
+      "statistic": "Average",
+      "dimensions": [
+        { "name": "ConsumerGroup", "value": "analytics-worker" },
+        { "name": "Topic", "value": "click-events" }
+      ]
+    },
+    "scaleOutCooldown": 60,
+    "scaleInCooldown": 300
+  }
+}
