@@ -239,6 +239,9 @@ func (s *Store) hourly(ctx context.Context, code string, since time.Time) ([]mod
 		}
 		buckets = append(buckets, bucket)
 	}
+	if buckets == nil {
+		buckets = []model.TimeBucket{}
+	}
 	return buckets, rows.Err()
 }
 
@@ -266,6 +269,9 @@ func (s *Store) dimension(ctx context.Context, code string, since time.Time, col
 		}
 		values = append(values, value)
 	}
+	if values == nil {
+		values = []model.DimensionCount{}
+	}
 	return values, rows.Err()
 }
 
@@ -289,6 +295,9 @@ func (s *Store) recentEvents(ctx context.Context, code string) ([]model.ClickEve
 			return nil, err
 		}
 		events = append(events, event)
+	}
+	if events == nil {
+		events = []model.ClickEvent{}
 	}
 	return events, rows.Err()
 }

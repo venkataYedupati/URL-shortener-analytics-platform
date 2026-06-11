@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-API_BASE="${API_BASE:-http://localhost:8080}"
+API_BASE="${API_BASE:-http://127.0.0.1:8080}"
 CODE="smoke-$(date +%s)"
 
 echo "Creating ${CODE}"
@@ -18,7 +18,7 @@ curl -sS -o /dev/null -w "redirect_status=%{http_code}\n" \
   -H "User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS)" \
   "${API_BASE}/${CODE}"
 
-sleep 2
+sleep 5
 
 echo "Fetching analytics"
 curl -sS "${API_BASE}/v1/links/${CODE}/analytics?hours=24"

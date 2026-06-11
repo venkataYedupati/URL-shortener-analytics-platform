@@ -28,7 +28,6 @@ func NewKafkaPublisher(cfg config.Config) *KafkaPublisher {
 			Balancer:     &kafka.LeastBytes{},
 			RequiredAcks: kafka.RequireOne,
 			BatchTimeout: 10 * time.Millisecond,
-			Async:        true,
 		},
 	}
 }
