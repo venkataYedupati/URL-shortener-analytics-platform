@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -20,6 +21,8 @@ import (
 	"github.com/venkataYedupati/url-shortener-analytics-platform/internal/shortener"
 	"github.com/venkataYedupati/url-shortener-analytics-platform/internal/store"
 )
+
+const maxCreateLinkBodyBytes = 32 << 10
 
 type Server struct {
 	cfg       config.Config
@@ -102,10 +105,19 @@ func (s *Server) links(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req createLinkRequest
-	decoder := json.NewDecoder(r.Body)
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxCreateLinkBodyBytes))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			writeError(w, http.StatusRequestEntityTooLarge, "request body is too large")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		writeError(w, http.StatusBadRequest, "request body must contain exactly one JSON object")
 		return
 	}
 

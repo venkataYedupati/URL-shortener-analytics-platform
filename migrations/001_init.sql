@@ -29,6 +29,9 @@ CREATE TABLE IF NOT EXISTS click_events (
 );
 
 CREATE INDEX IF NOT EXISTS click_events_link_time_idx ON click_events (link_code, occurred_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS click_events_request_id_uidx
+    ON click_events (request_id)
+    WHERE request_id <> '';
 
 CREATE TABLE IF NOT EXISTS analytics_hourly (
     link_code TEXT NOT NULL REFERENCES links(code) ON DELETE CASCADE,

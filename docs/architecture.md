@@ -21,3 +21,6 @@
 - Write API rate limits default to 120 requests per IP hash per 60 seconds.
 - Analytics queries default to 24 hours and cap at 90 days.
 - Kafka topic auto-creation is enabled in local Compose only; production should pre-create topics with explicit retention and partition counts.
+- Click ingestion is idempotent by `request_id`, so a worker retry after a Kafka offset commit failure does not double-count the click.
+- Link creation rejects localhost and private-network target URLs to reduce SSRF risk.
+- JSON request bodies are capped and decoded strictly to avoid oversized or ambiguous payloads.

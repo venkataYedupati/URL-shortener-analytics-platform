@@ -68,7 +68,30 @@ func ValidateTargetURL(raw string) error {
 	if parsed.Host == "" {
 		return errors.New("target_url must include a host")
 	}
+	if isPrivateTargetHost(parsed.Hostname()) {
+		return errors.New("target_url cannot point to localhost or private network addresses")
+	}
 	return nil
+}
+
+func isPrivateTargetHost(host string) bool {
+	host = strings.TrimSpace(strings.ToLower(host))
+	if host == "" {
+		return true
+	}
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLoopback() ||
+		ip.IsPrivate() ||
+		ip.IsLinkLocalUnicast() ||
+		ip.IsLinkLocalMulticast() ||
+		ip.IsUnspecified()
 }
 
 func NormalizeDomain(host string) string {

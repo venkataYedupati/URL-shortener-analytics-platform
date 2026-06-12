@@ -16,6 +16,8 @@ import (
 	"github.com/venkataYedupati/url-shortener-analytics-platform/internal/model"
 )
 
+const migrationLockID int64 = 9283746501
+
 var (
 	ErrNotFound = errors.New("not found")
 	ErrConflict = errors.New("conflict")
@@ -50,7 +52,21 @@ func (s *Store) ApplyMigrationFile(ctx context.Context, path string) error {
 	if err != nil {
 		return fmt.Errorf("read migration %s: %w", path, err)
 	}
-	_, err = s.pool.Exec(ctx, string(sql))
+
+	conn, err := s.pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire migration connection: %w", err)
+	}
+	defer conn.Release()
+
+	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", migrationLockID); err != nil {
+		return fmt.Errorf("acquire migration lock: %w", err)
+	}
+	defer func() {
+		_, _ = conn.Exec(context.Background(), "SELECT pg_advisory_unlock($1)", migrationLockID)
+	}()
+
+	_, err = conn.Exec(ctx, string(sql))
 	if err != nil {
 		return fmt.Errorf("apply migration %s: %w", path, err)
 	}
@@ -137,16 +153,23 @@ func (s *Store) RecordClick(ctx context.Context, event model.ClickEvent) error {
 	if err != nil {
 		return err
 	}
+	committed := false
 	defer func() {
-		if err != nil {
+		if !committed {
 			_ = tx.Rollback(ctx)
 		}
 	}()
 
-	_, err = tx.Exec(ctx, `
+	var eventID int64
+	err = tx.QueryRow(ctx, `
 		INSERT INTO click_events (link_code, occurred_at, country, device, referrer_domain, user_agent, ip_hash, request_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`, event.LinkCode, event.OccurredAt, event.Country, event.Device, event.ReferrerDomain, event.UserAgent, event.IPHash, event.RequestID)
+		ON CONFLICT (request_id) WHERE request_id <> '' DO NOTHING
+		RETURNING id
+	`, event.LinkCode, event.OccurredAt, event.Country, event.Device, event.ReferrerDomain, event.UserAgent, event.IPHash, event.RequestID).Scan(&eventID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -171,6 +194,9 @@ func (s *Store) RecordClick(ctx context.Context, event model.ClickEvent) error {
 	}
 
 	err = tx.Commit(ctx)
+	if err == nil {
+		committed = true
+	}
 	return err
 }
 

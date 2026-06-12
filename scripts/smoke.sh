@@ -18,8 +18,17 @@ curl -sS -o /dev/null -w "redirect_status=%{http_code}\n" \
   -H "User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS)" \
   "${API_BASE}/${CODE}"
 
-sleep 5
-
 echo "Fetching analytics"
-curl -sS "${API_BASE}/v1/links/${CODE}/analytics?hours=24"
-echo
+for attempt in $(seq 1 20); do
+  ANALYTICS_RESPONSE="$(curl -sS "${API_BASE}/v1/links/${CODE}/analytics?hours=24")"
+  TOTAL_CLICKS="$(printf '%s' "${ANALYTICS_RESPONSE}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("total_clicks", 0))')"
+  if [ "${TOTAL_CLICKS}" -ge 1 ]; then
+    printf '%s\n' "${ANALYTICS_RESPONSE}"
+    exit 0
+  fi
+  sleep 1
+done
+
+printf '%s\n' "${ANALYTICS_RESPONSE}"
+echo "analytics did not include the redirect click after 20 seconds" >&2
+exit 1

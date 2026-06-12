@@ -16,14 +16,24 @@ func TestGenerateCode(t *testing.T) {
 }
 
 func TestValidateTargetURL(t *testing.T) {
-	valid := []string{"https://example.com/path", "http://localhost:8080/demo"}
+	valid := []string{"https://example.com/path", "http://go.example.test/demo"}
 	for _, raw := range valid {
 		if err := ValidateTargetURL(raw); err != nil {
 			t.Fatalf("%s should be valid: %v", raw, err)
 		}
 	}
 
-	invalid := []string{"ftp://example.com", "/relative/path", "https://"}
+	invalid := []string{
+		"ftp://example.com",
+		"/relative/path",
+		"https://",
+		"http://localhost:8080/demo",
+		"http://127.0.0.1/demo",
+		"http://10.1.2.3/demo",
+		"http://172.16.0.1/demo",
+		"http://192.168.1.2/demo",
+		"http://[::1]/demo",
+	}
 	for _, raw := range invalid {
 		if err := ValidateTargetURL(raw); err == nil {
 			t.Fatalf("%s should be invalid", raw)
